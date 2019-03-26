@@ -1,0 +1,37 @@
+extra_column.csv:
+{"prediction_file_errors":"Submission file has extra columns: this_extra_column","prediction_file_status":"INVALID"}
+
+extra_row.csv:
+{"prediction_file_errors":"Submission file has missing rows: 431","prediction_file_status":"INVALID"}
+
+inf_pred.csv - error:
+Error in if (variance == 0) { : missing value where TRUE/FALSE needed
+Calls: get_submission_status_json -> check_submission_file -> check_submission_values
+(this file has just Inf for one of the prediction values)
+
+misnamed_col.csv - error:
+Error in filter_impl(.data, quo) : 
+  Evaluation error: object 'pKd_[M]_pred' not found.
+Calls: get_submission_status_json ... <Anonymous> -> filter -> filter.tbl_df -> filter_impl
+Execution halted
+
+missing_col.csv:
+{"prediction_file_errors":"Submission file has missing columns: DiscoveRx_Gene_Symbol","prediction_file_status":"INVALID"}
+
+missing_pred:
+{"prediction_file_errors":"Submission file has extra rows: 16","prediction_file_status":"INVALID"}
+
+missing_row.csv:
+{"prediction_file_errors":"Submission file has extra rows: 430","prediction_file_status":"INVALID"}
+
+no_variance.csv:
+{"prediction_file_errors":"Submission_df predictions have a variance of 0","prediction_file_status":"INVALID"}
+
+non_numeric.csv:
+Calls: get_submission_status_json -> check_submission_file -> check_submission_values
+In addition: Warning message:
+In evalq(as.numeric(`pKd_[M]_pred`), <environment>) :
+  NAs introduced by coercion
+
+ valid_pred.csv
+ {"prediction_file_errors":"","prediction_file_status":"VALIDATED"}
