@@ -1,8 +1,13 @@
-FROM rocker/tidyverse:3.5.0
+FROM rocker/r-ver
 
-RUN mkdir home/dream
+RUN echo "r <- getOption('repos'); r['CRAN'] <- 'http://cran.us.r-project.org'; options(repos = r);" > ~/.Rprofile
+RUN Rscript -e "install.packages('readr')"
 
-COPY demo_predict.R home/dream/demo_predict.R
-COPY round_2_template.csv home/dream/template.csv
+RUN mkdir test
+RUN mkdir io
 
-CMD ["R", "home/dream/demo_predict.R", "template.csv"]
+COPY demo_prediction.R /test/demo_prediction.R
+COPY round_2_template.csv /io/template.csv
+
+CMD Rscript /test/demo_prediction.R
+

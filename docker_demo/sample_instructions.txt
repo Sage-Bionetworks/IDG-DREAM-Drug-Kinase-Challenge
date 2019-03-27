@@ -1,0 +1,42 @@
+Sample instructions for creating a docker container. 
+
+1. Write R script (or Python, or other), save all required scripts to a single directory (e.g. /docker_demo). 
+
+2. Create a Dockerfile:
+cd docker_demo
+touch Dockerfile
+
+3. Open Dockerfile in a text editor and begin editing. Our demo requires R and the tidyverse, so in this example we will be using the rocker-tidyverse image as a base (FROM), adding a destination directory for this analysis in the container (RUN mkdir) and adding our script to that directory (COPY).
+
+-----
+FROM rocker/r-ver #use rocker as a base image
+
+RUN echo "r <- getOption('repos'); r['CRAN'] <- 'http://cran.us.r-project.org'; options(repos = r);" > ~/.Rprofile
+RUN Rscript -e "install.packages('readr')" ##install required R packages for demo_prediction.R
+
+RUN mkdir test #make test script directory
+RUN mkdir io #make input-output directory
+
+COPY demo_prediction.R /test/demo_prediction.R #copy over prediction script
+COPY round_2_template.csv /io/template.csv #copy round 2 template in as "template.csv"
+
+CMD Rscript /test/demo_prediction.R #run r script 
+
+-----
+
+It is important that your image can predict using any template file - e.g. the round 1 template file, or others. 
+
+In summary, your docker image must have two things at a minimum:  1) have a template.csv file in the 'io' directory that is used to create prediction values (in the round 2 template format, should also work for round 1 template) and 2) place a prediction file called prediction.csv in the 'io' directory. 
+
+4. Create your docker image (here, we are naming it 'demo') like so:
+
+docker build -t demo .
+
+5. Test that your docker image works like so:
+
+mkdir io
+docker run -it --rm -v ${PWD}/io:/io  demo
+
+
+
+
