@@ -44,6 +44,20 @@ parser$add_argument(
     "--verbose",
     action = 'store_false')
 
+parser$add_argument(
+    "-b",
+    "--bayes_metric",
+    default = "spearman",
+    type = "character",
+    help = "metric, whoose bayes factor will be used and saved")
+
+parser$add_argument(
+    "-n",
+    "--n_bootstraps",
+    default = 10000,
+    type = "integer",
+    help = "number of bootstraps before calculating bayes factor")
+
 args <- parser$parse_args()
 
 if(args$status != "VALIDATED"){
@@ -52,6 +66,8 @@ if(args$status != "VALIDATED"){
         rjson::toJSON()
     
 } else {
+    
+    
     
     n_cores <- parallel::detectCores()
     if(args$verbose){
@@ -70,6 +86,7 @@ if(args$status != "VALIDATED"){
     reticulate::use_python("~/../usr/bin/python2.7")
     
     reticulate::source_python('evaluation_metrics_python2.py')
+    
     
     spearman_py <- function(gold, pred){
         gold_py <- gold %>% np_array()
@@ -90,8 +107,8 @@ if(args$status != "VALIDATED"){
     }
     
     auc_py <- function(gold, pred){
-        gold_py <- gold %>% as.data.frame() %>% r_to_py()
-        pred_py <- pred %>% as.data.frame() %>% r_to_py()
+        gold_py <- gold %>% np_array()
+        pred_py <- pred %>% np_array()
         average_AUC(gold_py, pred_py)
     }
     
@@ -102,20 +119,31 @@ if(args$status != "VALIDATED"){
     }
     
     f1_py <- function(gold, pred){
-        gold_py <- gold %>% as.data.frame() %>% r_to_py()
-        pred_py <- pred %>% as.data.frame() %>% r_to_py()
+        gold_py <- gold %>% np_array()
+        pred_py <- pred %>% np_array()
         f1(gold_py, pred_py)
     }
     
+    function_list <- list(
+        "auc" = auc_py, 
+        "spearman" = spearman_py, 
+        "pearson" = pearson_py, 
+        "ci" = ci_py, 
+        "f1" = f1_py, 
+        "rmse" = rmse_py
+    )
+
+    
     param_df <- 
         tibble::tibble(
-            scoreFun = list(auc_py, spearman_py, pearson_py, ci_py, f1_py, rmse_py),
+            scoreFun = unname(function_list),
             largerIsBetter = c(rep(T, 5), F),
             predictions = args$current_sub,
             predictionColname = 'pKd_.M._pred',
             goldStandard = args$gold_standard,
             goldStandardColname = 'pKd_.M.',
-            doParallel = do_parallel
+            doParallel = do_parallel,
+            bootstrapN = args$n_bootstraps
         ) 
     
     if (!is.null(args$previous_sub)){
@@ -125,22 +153,37 @@ if(args$status != "VALIDATED"){
     
     output <- param_df %>% 
         purrr::pmap(bootLadderBoot) %>% 
-        magrittr::set_names(c("auc", "spearman", "pearson", "ci", "f1", "rmse"))
+        magrittr::set_names(names(function_list))
     
-    output_scores <- purrr::map(output, "score")
+    output_scores <- output %>% 
+        purrr::map("score") %>% 
+        as.double() %>% 
+        purrr::set_names(names(function_list))
+    
+    bayes <- output %>% 
+        magrittr::extract2(args$bayes_metric) %>% 
+        magrittr::extract2("bayes")
     
     met_cutoff <- output %>% 
-        magrittr::extract2("spearman") %>% 
-        magrittr::extract2("metBayesCutoff")
+        magrittr::extract2(args$bayes_metric) %>% 
+        magrittr::extract2("metCutoff")
     
     if(is.na(met_cutoff)) {
         met_cutoff <- T
     }
     
-    result_json <- output_scores %>% 
-        magrittr::inset("met_cutoff", value = met_cutoff) %>% 
-        magrittr::inset("prediction_file_status", value = "SCORED") %>% 
+    result_json <- 
+        list("met_cutoff" = met_cutoff,
+             "bayes" = bayes,
+             "prediction_file_status" = "SCORED"
+        ) %>% 
+        c(output_scores) %>% 
         rjson::toJSON()
+    
+    if(output_scores["f1"] == 0){
+        result_json <- stringr::str_replace(result_json, 'f1\":0', 'f1\":0.0')
+    }
+
 }
 
 write(result_json, "results.json")

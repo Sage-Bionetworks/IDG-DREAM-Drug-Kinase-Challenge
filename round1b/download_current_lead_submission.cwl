@@ -32,10 +32,14 @@ inputs:
     inputBinding:
       prefix: -s
 
-
+  - id: cutoff_annotation
+    type: string?
+    inputBinding:
+      prefix: -a
+   
 outputs:
 
   - id: output
     type: File?
     outputBinding:
-      glob: "*"
+      glob: "previous_submission.csv"

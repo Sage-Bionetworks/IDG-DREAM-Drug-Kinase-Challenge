@@ -119,9 +119,9 @@ def f1(y,f):
     """
 
     y_binary = copy.deepcopy(y)
-    y_binary = preprocessing.binarize(y_binary.values.reshape(1,-1), threshold=7.0, copy=False)[0]
+    y_binary = preprocessing.binarize(y_binary.reshape(1,-1), threshold=7.0, copy=False)[0]
     f_binary = copy.deepcopy(f)
-    f_binary = preprocessing.binarize(f_binary.values.reshape(1,-1), threshold=7.0, copy=False)[0]
+    f_binary = preprocessing.binarize(f_binary.reshape(1,-1), threshold=7.0, copy=False)[0]
 
     f1 = metrics.f1_score(y_binary, f_binary)
 
@@ -149,7 +149,7 @@ def average_AUC(y,f):
 
     for i in range(len(thr)):
         y_binary = copy.deepcopy(y)
-        y_binary = preprocessing.binarize(y_binary.values.reshape(1,-1), threshold=thr[i], copy=False)[0]
+        y_binary = preprocessing.binarize(y_binary.reshape(1,-1), threshold=thr[i], copy=False)[0]
         fpr, tpr, thresholds = metrics.roc_curve(y_binary, f, pos_label=1)
         auc[i] = metrics.auc(fpr, tpr)
 

@@ -33,6 +33,11 @@ inputs:
     inputBinding:
       prefix: --status
 
+  n_bootstraps:
+    type: int?
+    inputBinding:
+      prefix: --n_bootstraps
+
 outputs:
 
   - id: results

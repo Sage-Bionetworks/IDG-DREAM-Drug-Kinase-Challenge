@@ -1,0 +1,3 @@
+*.pyc
+*gs.csv
+*__pycache__

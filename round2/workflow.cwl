@@ -12,8 +12,8 @@ cwlVersion: v1.0
 class: Workflow
 
 requirements:
-  - class: StepInputExpressionRequirement
-  - class: InlineJavascriptRequirement
+- class: StepInputExpressionRequirement
+- class: InlineJavascriptRequirement
 
 inputs:
   - id: submissionId
@@ -31,8 +31,8 @@ inputs:
 outputs: []
 
 steps:
-  download_current_submission:
-    run: download_submission_file.cwl
+  download_submission:
+    run: https://raw.githubusercontent.com/Sage-Bionetworks/ChallengeWorkflowTemplates/v1.3/download_submission_file.cwl
     in:
       - id: submissionid
         source: "#submissionId"
@@ -41,22 +41,34 @@ steps:
     out:
       - id: filepath
       - id: entity
+      - id: entity_type 
+
+  download_goldstandard:
+    run: https://raw.githubusercontent.com/Sage-Bionetworks/ChallengeWorkflowTemplates/v1.3/download_from_synapse.cwl
+    in:
+      - id: synapseid
+        valueFrom: "syn18421225"
+      - id: synapse_config
+        source: "#synapseConfig"
+    out:
+      - id: filepath
       
   validation:
     run: validate.cwl
     in:
       - id: inputfile
-        source: "#download_current_submission/filepath"
-      - id: goldstandard
+        source: "#download_submission/filepath"
+      - id: goldstandard_file
         source: "#download_goldstandard/filepath"
+      - id: entity_type
+        source: "#download_submission/entity_type"
     out:
       - id: results
       - id: status
       - id: invalid_reasons
-      
-
+  
   validation_email:
-    run: https://raw.githubusercontent.com/Sage-Bionetworks/ChallengeWorkflowTemplates/v1.1/validate_email.cwl
+    run: https://raw.githubusercontent.com/Sage-Bionetworks/ChallengeWorkflowTemplates/v1.3/validate_email.cwl
     in:
       - id: submissionid
         source: "#submissionId"
@@ -69,8 +81,10 @@ steps:
 
     out: []
 
+
+
   annotate_validation_with_output:
-    run: https://raw.githubusercontent.com/Sage-Bionetworks/ChallengeWorkflowTemplates/v1.1/annotate_submission.cwl
+    run: https://raw.githubusercontent.com/Sage-Bionetworks/ChallengeWorkflowTemplates/v1.3/annotate_submission.cwl
     in:
       - id: submissionid
         source: "#submissionId"
@@ -83,47 +97,21 @@ steps:
       - id: synapse_config
         source: "#synapseConfig"
     out: []
-    
-  download_previous_submission:
-    run: download_current_lead_submission.cwl
-    in:
-      - id: submissionid
-        source: "#submissionId"
-      - id: synapse_config
-        source: "#synapseConfig"
-      - id: status 
-        source: "#validation/status"
-      - id: queue
-        valueFrom: "evaluation_9614192"
-    out:
-      - id: output
-
-  download_goldstandard:
-    run: https://raw.githubusercontent.com/Sage-Bionetworks/ChallengeWorkflowTemplates/v1.1/download_from_synapse.cwl
-    in:
-      - id: synapseid
-        valueFrom: "syn16809884"
-      - id: synapse_config
-        source: "#synapseConfig"
-    out:
-      - id: filepath
 
   scoring:
     run: score.cwl
     in:
-      - id: current_submission_file
-        source: "#download_current_submission/filepath"
+      - id: inputfile
+        source: "#download_submission/filepath"
       - id: status 
         source: "#validation/status"
-      - id: goldstandard
+      - id: goldstandard_file
         source: "#download_goldstandard/filepath"
-      - id: previous_submission_file
-        source: "#download_previous_submission/output"
     out:
       - id: results
       
   score_email:
-    run: score_email.cwl
+    run: https://raw.githubusercontent.com/Sage-Bionetworks/ChallengeWorkflowTemplates/v1.3/score_email.cwl
     in:
       - id: submissionid
         source: "#submissionId"
@@ -132,11 +120,11 @@ steps:
       - id: results
         source: "#scoring/results"
       - id: private_annotations
-        valueFrom: $(["met_cutoff", "bayes"])
+        valueFrom: $(["average_auc", "spearman", "rmse"])
     out: []
 
   annotate_submission_with_output:
-    run: https://raw.githubusercontent.com/Sage-Bionetworks/ChallengeWorkflowTemplates/v1.1/annotate_submission.cwl
+    run: https://raw.githubusercontent.com/Sage-Bionetworks/ChallengeWorkflowTemplates/v1.3/annotate_submission.cwl
     in:
       - id: submissionid
         source: "#submissionId"
@@ -150,3 +138,4 @@ steps:
         source: "#synapseConfig"
     out: []
  
+
